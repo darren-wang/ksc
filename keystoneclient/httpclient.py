@@ -176,12 +176,6 @@ class HTTPClient(baseclient.Client, base.BaseAuthPlugin):
     :param integer stale_duration: Gap in seconds to determine if token from
                                    keyring is about to expire. default: 30
                                    (optional)
-    :param string tenant_name: Tenant name. (optional) The tenant_name keyword
-                               argument is deprecated, use project_name
-                               instead.
-    :param string tenant_id: Tenant id. (optional) The tenant_id keyword
-                             argument is deprecated, use project_id instead.
-    :param string trust_id: Trust ID for trust scoping. (optional)
     :param object session: A Session object to be used for
                            communicating with the identity service.
     :type session: keystoneclient.session.Session
@@ -204,14 +198,14 @@ class HTTPClient(baseclient.Client, base.BaseAuthPlugin):
     version = None
 
     @utils.positional(enforcement=utils.positional.WARN)
-    def __init__(self, username=None, tenant_id=None, tenant_name=None,
+    def __init__(self, username=None,
                  password=None, auth_url=None, region_name=None, endpoint=None,
                  token=None, debug=False, auth_ref=None, use_keyring=False,
                  force_new_token=False, stale_duration=None, user_id=None,
                  user_domain_id=None, user_domain_name=None, domain_id=None,
                  domain_name=None, project_id=None, project_name=None,
                  project_domain_id=None, project_domain_name=None,
-                 trust_id=None, session=None, service_name=None,
+                 session=None, service_name=None,
                  interface='admin', endpoint_override=None, auth=None,
                  user_agent=USER_AGENT, connect_retries=None, **kwargs):
         # set baseline defaults
@@ -232,7 +226,6 @@ class HTTPClient(baseclient.Client, base.BaseAuthPlugin):
         self._endpoint = None
         self._management_url = None
 
-        self.trust_id = None
 
         # if loading from a dictionary passed in via auth_ref,
         # load values from AccessInfo parsing that dictionary
@@ -250,7 +243,6 @@ class HTTPClient(baseclient.Client, base.BaseAuthPlugin):
             self.auth_url = self.auth_ref.auth_url[0]
             self._management_url = self.auth_ref.management_url[0]
             self.auth_token_from_user = self.auth_ref.auth_token
-            self.trust_id = self.auth_ref.trust_id
             if self.auth_ref.has_service_catalog() and not region_name:
                 region_name = self.auth_ref.service_catalog.region_name
         else:
@@ -258,12 +250,6 @@ class HTTPClient(baseclient.Client, base.BaseAuthPlugin):
 
         # allow override of the auth_ref defaults from explicit
         # values provided to the client
-
-        # apply deprecated variables first, so modern variables override them
-        if tenant_id:
-            self.project_id = tenant_id
-        if tenant_name:
-            self.project_name = tenant_name
 
         # user-related attributes
         self.password = password
@@ -295,10 +281,6 @@ class HTTPClient(baseclient.Client, base.BaseAuthPlugin):
             self.project_domain_id = 'default'
         if project_domain_name:
             self.project_domain_name = project_domain_name
-
-        # trust-related attributes
-        if trust_id:
-            self.trust_id = trust_id
 
         # endpoint selection
         if auth_url:
@@ -391,28 +373,13 @@ class HTTPClient(baseclient.Client, base.BaseAuthPlugin):
         """Returns True if this client provides a service catalog."""
         return self.auth_ref and self.auth_ref.has_service_catalog()
 
-    @property
-    def tenant_id(self):
-        """Provide read-only backwards compatibility for tenant_id.
-           This is deprecated, use project_id instead.
-        """
-        return self.project_id
-
-    @property
-    def tenant_name(self):
-        """Provide read-only backwards compatibility for tenant_name.
-           This is deprecated, use project_name instead.
-        """
-        return self.project_name
-
     @utils.positional(enforcement=utils.positional.WARN)
-    def authenticate(self, username=None, password=None, tenant_name=None,
-                     tenant_id=None, auth_url=None, token=None,
+    def authenticate(self, username=None, password=None,
+                     auth_url=None, token=None,
                      user_id=None, domain_name=None, domain_id=None,
                      project_name=None, project_id=None, user_domain_id=None,
                      user_domain_name=None, project_domain_id=None,
-                     project_domain_name=None, trust_id=None,
-                     region_name=None):
+                     project_domain_name=None, region_name=None):
         """Authenticate user.
 
         Uses the data provided at instantiation to authenticate against
@@ -421,10 +388,6 @@ class HTTPClient(baseclient.Client, base.BaseAuthPlugin):
         then the resulting authenticated client will be scoped to that
         tenant and contain a service catalog of available endpoints.
 
-        With the v2.0 API, if a tenant name or ID is not provided, the
-        authentication token returned will be 'unscoped' and limited in
-        capabilities until a fully-scoped token is acquired.
-
         With the v3 API, if a domain name or id was provided then the resulting
         authenticated client will be scoped to that domain. If a project name
         or ID is not provided, and the authenticating user has a default
@@ -432,9 +395,6 @@ class HTTPClient(baseclient.Client, base.BaseAuthPlugin):
         to the default project. Otherwise, the authentication token returned
         will be 'unscoped' and limited in capabilities until a fully-scoped
         token is acquired.
-
-        With the v3 API, with the OS-TRUST extension enabled, the trust_id can
-        be provided to allow project-specific role delegation between users
 
         If successful, sets the self.auth_ref and self.auth_token with
         the returned token. If not already set, will also set
@@ -466,12 +426,11 @@ class HTTPClient(baseclient.Client, base.BaseAuthPlugin):
         user_domain_name = user_domain_name or self.user_domain_name
         domain_id = domain_id or self.domain_id
         domain_name = domain_name or self.domain_name
-        project_id = project_id or tenant_id or self.project_id
-        project_name = project_name or tenant_name or self.project_name
+        project_id = project_id or self.project_id
+        project_name = project_name or self.project_name
         project_domain_id = project_domain_id or self.project_domain_id
         project_domain_name = project_domain_name or self.project_domain_name
 
-        trust_id = trust_id or self.trust_id
         region_name = region_name or self._adapter.region_name
 
         if not token:
@@ -492,8 +451,7 @@ class HTTPClient(baseclient.Client, base.BaseAuthPlugin):
             'project_name': project_name,
             'project_domain_id': project_domain_id,
             'project_domain_name': project_domain_name,
-            'token': token,
-            'trust_id': trust_id,
+            'token': token
         }
         (keyring_key, auth_ref) = self.get_auth_ref_from_keyring(**kwargs)
         new_token_needed = False
@@ -619,15 +577,13 @@ class HTTPClient(baseclient.Client, base.BaseAuthPlugin):
 
     @utils.positional(enforcement=utils.positional.WARN)
     def get_raw_token_from_identity_service(self, auth_url, username=None,
-                                            password=None, tenant_name=None,
-                                            tenant_id=None, token=None,
+                                            password=None, token=None,
                                             user_id=None, user_domain_id=None,
                                             user_domain_name=None,
                                             domain_id=None, domain_name=None,
                                             project_id=None, project_name=None,
                                             project_domain_id=None,
-                                            project_domain_name=None,
-                                            trust_id=None):
+                                            project_domain_name=None):
         """Authenticate against the Identity API and get a token.
 
         Not implemented here because auth protocols should be API

@@ -18,12 +18,11 @@
 A Client object will allow you to communicate with the Identity server. The
 recommended way to get a Client object is to use
 :py:func:`keystoneclient.client.Client()`. :py:func:`~.Client()` uses version
-discovery to create a V3 or V2 client depending on what versions the Identity
+discovery to create a client depending on what versions the Identity
 server supports and what version is requested.
 
-Identity V2 and V3 clients can also be created directly. See
+Identity clients can also be created directly. See
 :py:class:`keystoneclient.v3.client.Client` for the V3 client and
-:py:class:`keystoneclient.v2_0.client.Client` for the V2 client.
 
 """
 
@@ -36,7 +35,6 @@ from keystoneclient import exceptions
 from keystoneclient import generic
 from keystoneclient import httpclient
 from keystoneclient import service_catalog
-from keystoneclient import v2_0
 from keystoneclient import v3
 
 
@@ -45,7 +43,6 @@ __version__ = pbr.version.VersionInfo('python-keystoneclient').version_string()
 __all__ = [
     # Modules
     'generic',
-    'v2_0',
     'v3',
 
     # Packages

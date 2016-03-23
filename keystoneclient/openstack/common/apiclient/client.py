@@ -206,8 +206,8 @@ class HTTPClient(object):
     def concat_url(endpoint, url):
         """Concatenate endpoint and final URL.
 
-        E.g., "http://keystone/v2.0/" and "/tokens" are concatenated to
-        "http://keystone/v2.0/tokens".
+        E.g., "http://keystone/v3/" and "/auth/tokens" are concatenated to
+        "http://keystone/v3/auth/tokens".
 
         :param endpoint: the base URL
         :param url: the final URL
@@ -299,9 +299,6 @@ class HTTPClient(object):
         ...     openstack_client = client.HTTPClient(auth)
         ...     # create nova client
         ...     from novaclient.v1_1 import client
-        ...     client.Client(openstack_client)
-        ...     # create keystone client
-        ...     from keystoneclient.v2_0 import client
         ...     client.Client(openstack_client)
         ...     # use them
         ...     openstack_client.identity.tenants.list()

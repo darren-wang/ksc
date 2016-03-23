@@ -36,7 +36,6 @@ class Token(base.AuthConstructor):
 
     :param string auth_url: Identity service endpoint for authentication.
     :param string token: Token for authentication.
-    :param string trust_id: Trust ID for trust scoping.
     :param string domain_id: Domain ID for domain scoping.
     :param string domain_name: Domain name for domain scoping.
     :param string project_id: Project ID for project scoping.

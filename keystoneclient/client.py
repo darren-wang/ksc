@@ -22,7 +22,7 @@ HTTPClient = httpclient.HTTPClient
 def Client(version=None, unstable=False, session=None, **kwargs):
     """Factory function to create a new identity service client.
 
-    The returned client will be either a V3 or V2 client. Check the version
+    The returned client will be a client. Check the version
     using the :py:attr:`~keystoneclient.v3.client.Client.version` property or
     the instance's class (with instanceof).
 
@@ -40,7 +40,6 @@ def Client(version=None, unstable=False, session=None, **kwargs):
                    that is being created.
     :returns: New keystone client object.
     :rtype: :py:class:`keystoneclient.v3.client.Client` or
-            :py:class:`keystoneclient.v2_0.client.Client`
     :raises keystoneclient.exceptions.DiscoveryFailure: if the server's
                                                         response is invalid.
     :raises keystoneclient.exceptions.VersionNotAvailable: if a suitable client

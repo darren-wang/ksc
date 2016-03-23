@@ -38,7 +38,6 @@ def get_options():
                    help='Domain ID containing project'),
         cfg.StrOpt('project-domain-name',
                    help='Domain name containing project'),
-        cfg.StrOpt('trust-id', help='Trust ID'),
     ]
 
 
@@ -58,8 +57,7 @@ class BaseGenericPlugin(base.BaseIdentityPlugin):
                  project_domain_id=None,
                  project_domain_name=None,
                  domain_id=None,
-                 domain_name=None,
-                 trust_id=None):
+                 domain_name=None):
         super(BaseGenericPlugin, self).__init__(auth_url=auth_url)
 
         self._project_id = project_id or tenant_id
@@ -68,7 +66,6 @@ class BaseGenericPlugin(base.BaseIdentityPlugin):
         self._project_domain_name = project_domain_name
         self._domain_id = domain_id
         self._domain_name = domain_name
-        self._trust_id = trust_id
 
         self._plugin = None
 
@@ -103,17 +100,9 @@ class BaseGenericPlugin(base.BaseIdentityPlugin):
                     self._project_domain_id, self._project_domain_name])
 
     @property
-    def _v2_params(self):
-        """Parameters that are common to v2 plugins."""
-        return {'trust_id': self._trust_id,
-                'tenant_id': self._project_id,
-                'tenant_name': self._project_name}
-
-    @property
     def _v3_params(self):
         """Parameters that are common to v3 plugins."""
-        return {'trust_id': self._trust_id,
-                'project_id': self._project_id,
+        return {'project_id': self._project_id,
                 'project_name': self._project_name,
                 'project_domain_id': self._project_domain_id,
                 'project_domain_name': self._project_domain_name,
@@ -137,9 +126,7 @@ class BaseGenericPlugin(base.BaseIdentityPlugin):
             url_parts = urlparse.urlparse(self.auth_url)
             path = url_parts.path.lower()
 
-            if path.startswith('/v2.0') and not self._has_domain_scope:
-                plugin = self.create_plugin(session, (2, 0), self.auth_url)
-            elif path.startswith('/v3'):
+            if path.startswith('/v3'):
                 plugin = self.create_plugin(session, (3, 0), self.auth_url)
 
         else:
@@ -147,12 +134,6 @@ class BaseGenericPlugin(base.BaseIdentityPlugin):
 
             for data in disc_data:
                 version = data['version']
-
-                if (_discover.version_match((2,), version) and
-                        self._has_domain_scope):
-                    # NOTE(jamielennox): if there are domain parameters there
-                    # is no point even trying against v2 APIs.
-                    continue
 
                 plugin = self.create_plugin(session,
                                             version,

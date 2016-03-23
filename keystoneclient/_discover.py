@@ -58,7 +58,7 @@ def get_version_data(session, url, authenticated=None):
         except KeyError:
             pass
 
-        # Otherwise if we query an endpoint like /v2.0 then we will get back
+        # Otherwise if we query an endpoint like /v3 then we will get back
         # just the one available version.
         try:
             return [body_resp['version']]
@@ -73,7 +73,7 @@ def get_version_data(session, url, authenticated=None):
 def normalize_version_number(version):
     """Turn a version representation into a tuple."""
 
-    # trim the v from a 'v2.0' or similar
+    # trim the v from a 'v3' or similar
     try:
         version = version.lstrip('v')
     except AttributeError:
@@ -118,8 +118,7 @@ def version_match(required, candidate):
     :returns: True if candidate is suitable False otherwise.
     :rtype: bool
     """
-    # major versions must be the same (e.g. even though v2 is a lower
-    # version than v3 we can't use it if v2 was requested)
+    # major versions must be the same
     if candidate[0] != required[0]:
         return False
 

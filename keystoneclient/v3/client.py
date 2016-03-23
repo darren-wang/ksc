@@ -23,11 +23,7 @@ from keystoneclient import httpclient
 from keystoneclient.i18n import _
 from keystoneclient.v3.contrib import endpoint_filter
 from keystoneclient.v3.contrib import endpoint_policy
-from keystoneclient.v3.contrib import federation
-from keystoneclient.v3.contrib import oauth1
 from keystoneclient.v3.contrib import simple_cert
-from keystoneclient.v3.contrib import trusts
-from keystoneclient.v3 import credentials
 from keystoneclient.v3 import domains
 from keystoneclient.v3 import endpoints
 from keystoneclient.v3 import groups
@@ -96,10 +92,6 @@ class Client(httpclient.HTTPClient):
 
     Instances of this class have the following managers:
 
-    .. py:attribute:: credentials
-
-        :py:class:`keystoneclient.v3.credentials.CredentialManager`
-
     .. py:attribute:: endpoint_filter
 
         :py:class:`keystoneclient.v3.contrib.endpoint_filter.\
@@ -118,17 +110,9 @@ EndpointPolicyManager`
 
         :py:class:`keystoneclient.v3.domains.DomainManager`
 
-    .. py:attribute:: federation
-
-        :py:class:`keystoneclient.v3.contrib.federation.core.FederationManager`
-
     .. py:attribute:: groups
 
         :py:class:`keystoneclient.v3.groups.GroupManager`
-
-    .. py:attribute:: oauth1
-
-        :py:class:`keystoneclient.v3.contrib.oauth1.core.OAuthManager`
 
     .. py:attribute:: policies
 
@@ -158,10 +142,6 @@ EndpointPolicyManager`
 
         :py:class:`keystoneclient.v3.tokens.TokenManager`
 
-    .. py:attribute:: trusts
-
-        :py:class:`keystoneclient.v3.contrib.trusts.TrustManager`
-
     .. py:attribute:: users
 
         :py:class:`keystoneclient.v3.users.UserManager`
@@ -174,16 +154,13 @@ EndpointPolicyManager`
         """Initialize a new client for the Keystone v3 API."""
         super(Client, self).__init__(**kwargs)
 
-        self.credentials = credentials.CredentialManager(self._adapter)
         self.endpoint_filter = endpoint_filter.EndpointFilterManager(
             self._adapter)
         self.endpoint_policy = endpoint_policy.EndpointPolicyManager(
             self._adapter)
         self.endpoints = endpoints.EndpointManager(self._adapter)
         self.domains = domains.DomainManager(self._adapter)
-        self.federation = federation.FederationManager(self._adapter)
         self.groups = groups.GroupManager(self._adapter)
-        self.oauth1 = oauth1.create_oauth_manager(self._adapter)
         self.policies = policies.PolicyManager(self._adapter)
         self.projects = projects.ProjectManager(self._adapter)
         self.regions = regions.RegionManager(self._adapter)
@@ -193,7 +170,6 @@ EndpointPolicyManager`
         self.services = services.ServiceManager(self._adapter)
         self.simple_cert = simple_cert.SimpleCertManager(self._adapter)
         self.tokens = tokens.TokenManager(self._adapter)
-        self.trusts = trusts.TrustManager(self._adapter)
         self.users = users.UserManager(self._adapter)
 
         # DEPRECATED: if session is passed then we go to the new behaviour of
@@ -230,7 +206,6 @@ EndpointPolicyManager`
                                             project_domain_id=None,
                                             project_domain_name=None,
                                             token=None,
-                                            trust_id=None,
                                             **kwargs):
         """Authenticate against the v3 Identity API.
 
@@ -266,7 +241,6 @@ EndpointPolicyManager`
                 raise exceptions.AuthorizationFailure(msg)
 
             plugin = v3_auth.Auth(auth_url, auth_methods,
-                                  trust_id=trust_id,
                                   domain_id=domain_id,
                                   domain_name=domain_name,
                                   project_id=project_id,

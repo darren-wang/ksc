@@ -59,10 +59,7 @@ class Token(dict):
     def __init__(self, expires=None, issued=None, user_id=None, user_name=None,
                  user_domain_id=None, user_domain_name=None, methods=None,
                  project_id=None, project_name=None, project_domain_id=None,
-                 project_domain_name=None, domain_id=None, domain_name=None,
-                 trust_id=None, trust_impersonation=None, trustee_user_id=None,
-                 trustor_user_id=None, oauth_access_token_id=None,
-                 oauth_consumer_id=None):
+                 project_domain_name=None, domain_id=None, domain_name=None):
         super(Token, self).__init__()
 
         self.user_id = user_id or uuid.uuid4().hex
@@ -101,17 +98,6 @@ class Token(dict):
 
         if domain_id or domain_name:
             self.set_domain_scope(id=domain_id, name=domain_name)
-
-        if (trust_id or (trust_impersonation is not None) or
-                trustee_user_id or trustor_user_id):
-            self.set_trust_scope(id=trust_id,
-                                 impersonation=trust_impersonation,
-                                 trustee_user_id=trustee_user_id,
-                                 trustor_user_id=trustor_user_id)
-
-        if oauth_access_token_id or oauth_consumer_id:
-            self.set_oauth(access_token_id=oauth_access_token_id,
-                           consumer_id=oauth_consumer_id)
 
     @property
     def root(self):
@@ -243,67 +229,14 @@ class Token(dict):
     def domain_name(self, value):
         self.root.setdefault('domain', {})['name'] = value
 
-    @property
-    def trust_id(self):
-        return self.root.get('OS-TRUST:trust', {}).get('id')
-
-    @trust_id.setter
-    def trust_id(self, value):
-        self.root.setdefault('OS-TRUST:trust', {})['id'] = value
-
-    @property
-    def trust_impersonation(self):
-        return self.root.get('OS-TRUST:trust', {}).get('impersonation')
-
-    @trust_impersonation.setter
-    def trust_impersonation(self, value):
-        self.root.setdefault('OS-TRUST:trust', {})['impersonation'] = value
-
-    @property
-    def trustee_user_id(self):
-        trust = self.root.get('OS-TRUST:trust', {})
-        return trust.get('trustee_user', {}).get('id')
-
-    @trustee_user_id.setter
-    def trustee_user_id(self, value):
-        trust = self.root.setdefault('OS-TRUST:trust', {})
-        trust.setdefault('trustee_user', {})['id'] = value
-
-    @property
-    def trustor_user_id(self):
-        trust = self.root.get('OS-TRUST:trust', {})
-        return trust.get('trustor_user', {}).get('id')
-
-    @trustor_user_id.setter
-    def trustor_user_id(self, value):
-        trust = self.root.setdefault('OS-TRUST:trust', {})
-        trust.setdefault('trustor_user', {})['id'] = value
-
-    @property
-    def oauth_access_token_id(self):
-        return self.root.get('OS-OAUTH1', {}).get('access_token_id')
-
-    @oauth_access_token_id.setter
-    def oauth_access_token_id(self, value):
-        self.root.setdefault('OS-OAUTH1', {})['access_token_id'] = value
-
-    @property
-    def oauth_consumer_id(self):
-        return self.root.get('OS-OAUTH1', {}).get('consumer_id')
-
-    @oauth_consumer_id.setter
-    def oauth_consumer_id(self, value):
-        self.root.setdefault('OS-OAUTH1', {})['consumer_id'] = value
-
     def validate(self):
         project = self.root.get('project')
         domain = self.root.get('domain')
-        trust = self.root.get('OS-TRUST:trust')
         catalog = self.root.get('catalog')
         roles = self.root.get('roles')
-        scoped = project or domain or trust
+        scoped = project or domain
 
-        if sum((bool(project), bool(domain), bool(trust))) > 1:
+        if sum((bool(project), bool(domain))) > 1:
             msg = 'You cannot scope to multiple targets'
             raise exception.FixtureValidationError(msg)
 
@@ -343,42 +276,3 @@ class Token(dict):
     def set_domain_scope(self, id=None, name=None):
         self.domain_id = id or uuid.uuid4().hex
         self.domain_name = name or uuid.uuid4().hex
-
-    def set_trust_scope(self, id=None, impersonation=False,
-                        trustee_user_id=None, trustor_user_id=None):
-        self.trust_id = id or uuid.uuid4().hex
-        self.trust_impersonation = impersonation
-        self.trustee_user_id = trustee_user_id or uuid.uuid4().hex
-        self.trustor_user_id = trustor_user_id or uuid.uuid4().hex
-
-    def set_oauth(self, access_token_id=None, consumer_id=None):
-        self.oauth_access_token_id = access_token_id or uuid.uuid4().hex
-        self.oauth_consumer_id = consumer_id or uuid.uuid4().hex
-
-
-class V3FederationToken(Token):
-    """A V3 Keystone Federation token that can be used for testing.
-
-    Similar to V3Token, this object is designed to allow clients to generate
-    a correct V3 federation token for use in test code.
-    """
-
-    def __init__(self, methods=None, identity_provider=None, protocol=None,
-                 groups=None):
-        methods = methods or ['saml2']
-        super(V3FederationToken, self).__init__(methods=methods)
-        # NOTE(stevemar): Federated tokens do not have a domain for the user
-        del self._user['domain']
-        self.add_federation_info_to_user(identity_provider, protocol, groups)
-
-    def add_federation_info_to_user(self, identity_provider=None,
-                                    protocol=None, groups=None):
-        data = {
-            "OS-FEDERATION": {
-                "identity_provider": identity_provider or uuid.uuid4().hex,
-                "protocol": protocol or uuid.uuid4().hex,
-                "groups": groups or [{"id": uuid.uuid4().hex}]
-            }
-        }
-        self._user.update(data)
-        return data

@@ -34,8 +34,6 @@ class ServiceCatalog(object):
         """Create ServiceCatalog object given an auth token."""
         if ServiceCatalogV3.is_valid(resource_dict):
             return ServiceCatalogV3(token, resource_dict, region_name)
-        elif ServiceCatalogV2.is_valid(resource_dict):
-            return ServiceCatalogV2(resource_dict, region_name)
         else:
             raise NotImplementedError(_('Unrecognized auth response'))
 
@@ -69,7 +67,7 @@ class ServiceCatalog(object):
 
     @abc.abstractmethod
     def _is_endpoint_type_match(self, endpoint, endpoint_type):
-        """Helper function to normalize endpoint matching across v2 and v3.
+        """Helper function to normalize endpoint matching.
 
         :returns: True if the provided endpoint matches the required
         endpoint_type otherwise False.
@@ -77,11 +75,9 @@ class ServiceCatalog(object):
 
     @abc.abstractmethod
     def _normalize_endpoint_type(self, endpoint_type):
-        """Handle differences in the way v2 and v3 catalogs specify endpoint.
+        """Handle differences in the way catalogs specify endpoint.
 
-        Both v2 and v3 must be able to handle the endpoint style of the other.
-        For example v2 must be able to handle a 'public' endpoint_type and
-        v3 must be able to handle a 'publicURL' endpoint_type.
+        Both catalogs must be able to handle the endpoint style of the other.
 
         :returns: the endpoint string in the format appropriate for this
                   service catalog.
@@ -263,63 +259,6 @@ class ServiceCatalog(object):
         :returns: list containing raw catalog data entries or None
         """
         raise NotImplementedError()
-
-
-class ServiceCatalogV2(ServiceCatalog):
-    """An object for encapsulating the service catalog using raw v2 auth token
-    from Keystone.
-    """
-
-    def __init__(self, resource_dict, region_name=None):
-        self.catalog = resource_dict
-        super(ServiceCatalogV2, self).__init__(region_name=region_name)
-
-    @classmethod
-    def is_valid(cls, resource_dict):
-        # This class is also used for reading token info of an unscoped token.
-        # Unscoped token does not have 'serviceCatalog' in V2, checking this
-        # will not work. Use 'token' attribute instead.
-        return 'token' in resource_dict
-
-    def _normalize_endpoint_type(self, endpoint_type):
-        if endpoint_type and 'URL' not in endpoint_type:
-            endpoint_type = endpoint_type + 'URL'
-
-        return endpoint_type
-
-    def _is_endpoint_type_match(self, endpoint, endpoint_type):
-        return endpoint_type in endpoint
-
-    def get_data(self):
-        return self.catalog.get('serviceCatalog')
-
-    def get_token(self):
-        token = {'id': self.catalog['token']['id'],
-                 'expires': self.catalog['token']['expires']}
-        try:
-            token['user_id'] = self.catalog['user']['id']
-            token['tenant_id'] = self.catalog['token']['tenant']['id']
-        except Exception:
-            # just leave the tenant and user out if it doesn't exist
-            pass
-        return token
-
-    @utils.positional(enforcement=utils.positional.WARN)
-    def get_urls(self, attr=None, filter_value=None,
-                 service_type='identity', endpoint_type='publicURL',
-                 region_name=None, service_name=None):
-        endpoint_type = self._normalize_endpoint_type(endpoint_type)
-        endpoints = self._get_service_endpoints(attr=attr,
-                                                filter_value=filter_value,
-                                                service_type=service_type,
-                                                endpoint_type=endpoint_type,
-                                                region_name=region_name,
-                                                service_name=service_name)
-
-        if endpoints:
-            return tuple([endpoint[endpoint_type] for endpoint in endpoints])
-        else:
-            return None
 
 
 class ServiceCatalogV3(ServiceCatalog):

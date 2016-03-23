@@ -64,11 +64,6 @@ def _remove_service_catalog(body):
             data['token']['catalog'] = '<removed>'
             return jsonutils.dumps(data)
 
-        # V2 token
-        if 'serviceCatalog' in data['access']:
-            data['access']['serviceCatalog'] = '<removed>'
-            return jsonutils.dumps(data)
-
     except Exception:
         # Don't fail trying to clean up the request body.
         pass

@@ -56,17 +56,8 @@ class AccessInfo(dict):
                     return AccessInfoV3(auth_token, **body['token'])
                 else:
                     return AccessInfoV3(auth_token, **kwargs)
-            elif AccessInfoV2.is_valid(body, **kwargs):
-                if body:
-                    if region_name:
-                        body['access']['region_name'] = region_name
-                    auth_ref = AccessInfoV2(**body['access'])
-                else:
-                    auth_ref = AccessInfoV2(**kwargs)
             else:
                 raise NotImplementedError(_('Unrecognized auth response'))
-        else:
-            auth_ref = AccessInfoV2(**kwargs)
 
         if auth_token:
             auth_ref.auth_token = auth_token
@@ -100,7 +91,7 @@ class AccessInfo(dict):
 
     @classmethod
     def is_valid(cls, body, **kwargs):
-        """Determines if processing v2 or v3 token given a successful
+        """Determines if processing v3 token given a successful
         auth body or a user-provided dict.
 
         :returns: true if auth body matches implementing class
@@ -154,7 +145,7 @@ class AccessInfo(dict):
     @property
     def username(self):
         """Returns the username associated with the authentication request.
-        Follows the pattern defined in the V2 API of first looking for 'name',
+        First looking for 'name',
         returning that if available, and falling back to 'username' if name
         is unavailable.
 
@@ -175,9 +166,6 @@ class AccessInfo(dict):
         """Returns the domain id of the user associated with the authentication
         request.
 
-        For v2, it always returns 'default' which may be different from the
-        Keystone configuration.
-
         :returns: str
         """
         raise NotImplementedError()
@@ -186,9 +174,6 @@ class AccessInfo(dict):
     def user_domain_name(self):
         """Returns the domain name of the user associated with the
         authentication request.
-
-        For v2, it always returns 'Default' which may be different from the
-        Keystone configuration.
 
         :returns: str
         """
@@ -237,11 +222,6 @@ class AccessInfo(dict):
         raise NotImplementedError()
 
     @property
-    def tenant_name(self):
-        """Synonym for project_name."""
-        return self.project_name
-
-    @property
     def scoped(self):
         """Returns true if the authorization token was scoped to a tenant
            (project), and contains a populated service catalog.
@@ -270,39 +250,6 @@ class AccessInfo(dict):
         raise NotImplementedError()
 
     @property
-    def trust_id(self):
-        """Returns the trust id associated with the authentication token.
-
-        :returns: str or None (if no trust associated with the token)
-        """
-        raise NotImplementedError()
-
-    @property
-    def trust_scoped(self):
-        """Returns true if the authorization token was scoped as delegated in a
-        trust, via the OS-TRUST v3 extension.
-
-        :returns: bool
-        """
-        raise NotImplementedError()
-
-    @property
-    def trustee_user_id(self):
-        """Returns the trustee user id associated with a trust.
-
-        :returns: str or None (if no trust associated with the token)
-        """
-        raise NotImplementedError()
-
-    @property
-    def trustor_user_id(self):
-        """Returns the trustor user id associated with a trust.
-
-        :returns: str or None (if no trust associated with the token)
-        """
-        raise NotImplementedError()
-
-    @property
     def project_id(self):
         """Returns the project ID associated with the authentication
         request, or None if the authentication request wasn't scoped to a
@@ -313,17 +260,9 @@ class AccessInfo(dict):
         raise NotImplementedError()
 
     @property
-    def tenant_id(self):
-        """Synonym for project_id."""
-        return self.project_id
-
-    @property
     def project_domain_id(self):
         """Returns the domain id of the project associated with the
         authentication request.
-
-        For v2, it returns 'default' if a project is scoped or None which may
-        be different from the keystone configuration.
 
         :returns: str
         """
@@ -333,9 +272,6 @@ class AccessInfo(dict):
     def project_domain_name(self):
         """Returns the domain name of the project associated with the
         authentication request.
-
-        For v2, it returns 'Default' if a project is scoped or None  which may
-        be different from the keystone configuration.
 
         :returns: str
         """
@@ -376,222 +312,6 @@ class AccessInfo(dict):
         """
         return self.get('version')
 
-    @property
-    def oauth_access_token_id(self):
-        """Return the access token ID if OAuth authentication used.
-
-        :returns: str or None.
-        """
-        raise NotImplementedError()
-
-    @property
-    def oauth_consumer_id(self):
-        """Return the consumer ID if OAuth authentication used.
-
-        :returns: str or None.
-        """
-        raise NotImplementedError()
-
-    @property
-    def is_federated(self):
-        """Returns true if federation was used to get the token.
-
-        :returns: boolean
-        """
-        raise NotImplementedError()
-
-
-class AccessInfoV2(AccessInfo):
-    """An object for encapsulating a raw v2 auth token from identity
-       service.
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(AccessInfo, self).__init__(*args, **kwargs)
-        self.update(version='v2.0')
-        self.service_catalog = service_catalog.ServiceCatalog.factory(
-            resource_dict=self,
-            token=self['token']['id'],
-            region_name=self._region_name)
-
-    @classmethod
-    def is_valid(cls, body, **kwargs):
-        if body:
-            return 'access' in body
-        elif kwargs:
-            return kwargs.get('version') == 'v2.0'
-        else:
-            return False
-
-    def has_service_catalog(self):
-        return 'serviceCatalog' in self
-
-    @AccessInfo.auth_token.getter
-    def auth_token(self):
-        try:
-            return super(AccessInfoV2, self).auth_token
-        except KeyError:
-            return self['token']['id']
-
-    @property
-    def expires(self):
-        return timeutils.parse_isotime(self['token']['expires'])
-
-    @property
-    def issued(self):
-        return timeutils.parse_isotime(self['token']['issued_at'])
-
-    @property
-    def username(self):
-        return self['user'].get('name', self['user'].get('username'))
-
-    @property
-    def user_id(self):
-        return self['user']['id']
-
-    @property
-    def user_domain_id(self):
-        return 'default'
-
-    @property
-    def user_domain_name(self):
-        return 'Default'
-
-    @property
-    def role_ids(self):
-        return self.get('metadata', {}).get('roles', [])
-
-    @property
-    def role_names(self):
-        return [r['name'] for r in self['user'].get('roles', [])]
-
-    @property
-    def domain_name(self):
-        return None
-
-    @property
-    def domain_id(self):
-        return None
-
-    @property
-    def project_name(self):
-        try:
-            tenant_dict = self['token']['tenant']
-        except KeyError:
-            pass
-        else:
-            return tenant_dict.get('name')
-
-        # pre grizzly
-        try:
-            return self['user']['tenantName']
-        except KeyError:
-            pass
-
-        # pre diablo, keystone only provided a tenantId
-        try:
-            return self['token']['tenantId']
-        except KeyError:
-            pass
-
-    @property
-    def scoped(self):
-        if ('serviceCatalog' in self
-                and self['serviceCatalog']
-                and 'tenant' in self['token']):
-            return True
-        return False
-
-    @property
-    def project_scoped(self):
-        return 'tenant' in self['token']
-
-    @property
-    def domain_scoped(self):
-        return False
-
-    @property
-    def trust_id(self):
-        return self.get('trust', {}).get('id')
-
-    @property
-    def trust_scoped(self):
-        return 'trust' in self
-
-    @property
-    def trustee_user_id(self):
-        return self.get('trust', {}).get('trustee_user_id')
-
-    @property
-    def trustor_user_id(self):
-        # this information is not available in the v2 token bug: #1331882
-        return None
-
-    @property
-    def project_id(self):
-        try:
-            tenant_dict = self['token']['tenant']
-        except KeyError:
-            pass
-        else:
-            return tenant_dict.get('id')
-
-        # pre grizzly
-        try:
-            return self['user']['tenantId']
-        except KeyError:
-            pass
-
-        # pre diablo
-        try:
-            return self['token']['tenantId']
-        except KeyError:
-            pass
-
-    @property
-    def project_domain_id(self):
-        if self.project_id:
-            return 'default'
-
-    @property
-    def project_domain_name(self):
-        if self.project_id:
-            return 'Default'
-
-    @property
-    def auth_url(self):
-        # FIXME(jamielennox): this is deprecated in favour of retrieving it
-        # from the service catalog. Provide a warning.
-        if self.service_catalog:
-            return self.service_catalog.get_urls(service_type='identity',
-                                                 endpoint_type='publicURL',
-                                                 region_name=self._region_name)
-        else:
-            return None
-
-    @property
-    def management_url(self):
-        # FIXME(jamielennox): this is deprecated in favour of retrieving it
-        # from the service catalog. Provide a warning.
-        if self.service_catalog:
-            return self.service_catalog.get_urls(service_type='identity',
-                                                 endpoint_type='adminURL',
-                                                 region_name=self._region_name)
-        else:
-            return None
-
-    @property
-    def oauth_access_token_id(self):
-        return None
-
-    @property
-    def oauth_consumer_id(self):
-        return None
-
-    @property
-    def is_federated(self):
-        return False
-
 
 class AccessInfoV3(AccessInfo):
     """An object for encapsulating a raw v3 auth token from identity
@@ -621,10 +341,6 @@ class AccessInfoV3(AccessInfo):
         return 'catalog' in self
 
     @property
-    def is_federated(self):
-        return 'OS-FEDERATION' in self['user']
-
-    @property
     def expires(self):
         return timeutils.parse_isotime(self['expires_at'])
 
@@ -641,8 +357,6 @@ class AccessInfoV3(AccessInfo):
         try:
             return self['user']['domain']['id']
         except KeyError:
-            if self.is_federated:
-                return None
             raise
 
     @property
@@ -650,8 +364,6 @@ class AccessInfoV3(AccessInfo):
         try:
             return self['user']['domain']['name']
         except KeyError:
-            if self.is_federated:
-                return None
             raise
 
     @property
@@ -715,22 +427,6 @@ class AccessInfoV3(AccessInfo):
         return 'domain' in self
 
     @property
-    def trust_id(self):
-        return self.get('OS-TRUST:trust', {}).get('id')
-
-    @property
-    def trust_scoped(self):
-        return 'OS-TRUST:trust' in self
-
-    @property
-    def trustee_user_id(self):
-        return self.get('OS-TRUST:trust', {}).get('trustee_user', {}).get('id')
-
-    @property
-    def trustor_user_id(self):
-        return self.get('OS-TRUST:trust', {}).get('trustor_user', {}).get('id')
-
-    @property
     def auth_url(self):
         # FIXME(jamielennox): this is deprecated in favour of retrieving it
         # from the service catalog. Provide a warning.
@@ -752,11 +448,3 @@ class AccessInfoV3(AccessInfo):
 
         else:
             return None
-
-    @property
-    def oauth_access_token_id(self):
-        return self.get('OS-OAUTH1', {}).get('access_token_id')
-
-    @property
-    def oauth_consumer_id(self):
-        return self.get('OS-OAUTH1', {}).get('consumer_id')

@@ -12,14 +12,10 @@
 
 from keystoneclient.auth.identity import base
 from keystoneclient.auth.identity import generic
-from keystoneclient.auth.identity import v2
 from keystoneclient.auth.identity import v3
 
 
 BaseIdentityPlugin = base.BaseIdentityPlugin
-
-V2Password = v2.Password
-V2Token = v2.Token
 
 V3Password = v3.Password
 V3Token = v3.Token
@@ -31,7 +27,5 @@ Token = generic.Token
 __all__ = ['BaseIdentityPlugin',
            'Password',
            'Token',
-           'V2Password',
-           'V2Token',
            'V3Password',
            'V3Token']

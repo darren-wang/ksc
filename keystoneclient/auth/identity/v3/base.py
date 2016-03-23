@@ -33,7 +33,6 @@ class BaseAuth(base.BaseIdentityPlugin):
 
     :param string auth_url: Identity service endpoint for authentication.
     :param list auth_methods: A collection of methods to authenticate with.
-    :param string trust_id: Trust ID for trust scoping.
     :param string domain_id: Domain ID for domain scoping.
     :param string domain_name: Domain name for domain scoping.
     :param string project_id: Project ID for project scoping.
@@ -48,7 +47,6 @@ class BaseAuth(base.BaseIdentityPlugin):
 
     @utils.positional()
     def __init__(self, auth_url,
-                 trust_id=None,
                  domain_id=None,
                  domain_name=None,
                  project_id=None,
@@ -59,7 +57,6 @@ class BaseAuth(base.BaseIdentityPlugin):
                  include_catalog=True):
         super(BaseAuth, self).__init__(auth_url=auth_url,
                                        reauthenticate=reauthenticate)
-        self.trust_id = trust_id
         self.domain_id = domain_id
         self.domain_name = domain_name
         self.project_id = project_id
@@ -90,7 +87,6 @@ class BaseAuth(base.BaseIdentityPlugin):
                        help='Domain ID containing project'),
             cfg.StrOpt('project-domain-name',
                        help='Domain name containing project'),
-            cfg.StrOpt('trust-id', help='Trust ID'),
         ])
 
         return options
@@ -101,7 +97,6 @@ class Auth(BaseAuth):
 
     :param string auth_url: Identity service endpoint for authentication.
     :param list auth_methods: A collection of methods to authenticate with.
-    :param string trust_id: Trust ID for trust scoping.
     :param string domain_id: Domain ID for domain scoping.
     :param string domain_name: Domain name for domain scoping.
     :param string project_id: Project ID for project scoping.
@@ -137,13 +132,12 @@ class Auth(BaseAuth):
                 _('Authentication method required (e.g. password)'))
 
         mutual_exclusion = [bool(self.domain_id or self.domain_name),
-                            bool(self.project_id or self.project_name),
-                            bool(self.trust_id)]
+                            bool(self.project_id or self.project_name)]
 
         if sum(mutual_exclusion) > 1:
             raise exceptions.AuthorizationFailure(
                 _('Authentication cannot be scoped to multiple targets. Pick '
-                  'one of: project, domain or trust'))
+                  'one of: project or domain'))
 
         if self.domain_id:
             body['auth']['scope'] = {'domain': {'id': self.domain_id}}
@@ -159,8 +153,6 @@ class Auth(BaseAuth):
                 scope['project']['domain'] = {'id': self.project_domain_id}
             elif self.project_domain_name:
                 scope['project']['domain'] = {'name': self.project_domain_name}
-        elif self.trust_id:
-            body['auth']['scope'] = {'OS-TRUST:trust': {'id': self.trust_id}}
 
         # NOTE(jamielennox): we add nocatalog here rather than in token_url
         # directly as some federation plugins require the base token_url

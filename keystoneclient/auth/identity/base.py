@@ -42,7 +42,6 @@ class BaseIdentityPlugin(base.BaseAuthPlugin):
                  username=None,
                  password=None,
                  token=None,
-                 trust_id=None,
                  reauthenticate=True):
 
         super(BaseIdentityPlugin, self).__init__()
@@ -58,7 +57,6 @@ class BaseIdentityPlugin(base.BaseAuthPlugin):
         self.username = username
         self.password = password
         self.token = token
-        self.trust_id = trust_id
 
     @abc.abstractmethod
     def get_auth_ref(self, session, **kwargs):

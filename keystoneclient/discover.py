@@ -19,15 +19,13 @@ from keystoneclient import exceptions
 from keystoneclient.i18n import _
 from keystoneclient import session as client_session
 from keystoneclient import utils
-from keystoneclient.v2_0 import client as v2_client
 from keystoneclient.v3 import client as v3_client
 
 
 _logger = logging.getLogger(__name__)
 
 
-_CLIENT_VERSIONS = {2: v2_client.Client,
-                    3: v3_client.Client}
+_CLIENT_VERSIONS = {3: v3_client.Client}
 
 
 # functions needed from the private file that can be made public
@@ -87,7 +85,6 @@ class Discover(_discover.Discover):
 
     The connection parameters associated with this method are the same format
     and name as those used by a client (see
-    :py:class:`keystoneclient.v2_0.client.Client` and
     :py:class:`keystoneclient.v3.client.Client`). If not overridden in
     subsequent methods they will also be what is passed to the constructed
     client.
@@ -226,8 +223,7 @@ class Discover(_discover.Discover):
                   'media-types': [
                       {'base': 'application/json',
                        'type': 'application/vnd.openstack.identity-v2.0+json'},
-                      {'base': 'application/xml',
-                       'type': 'application/vnd.openstack.identity-v2.0+xml'}],
+                        ],
                   'status': 'stable',
                   'updated': '2013-03-06T00:00:00Z'}]
         """

@@ -11,7 +11,6 @@
 # under the License.
 
 from keystoneclient.auth.identity.v3.base import *  # noqa
-from keystoneclient.auth.identity.v3.federated import *  # noqa
 from keystoneclient.auth.identity.v3.password import *  # noqa
 from keystoneclient.auth.identity.v3.token import *  # noqa
 
@@ -20,8 +19,6 @@ __all__ = ['Auth',
            'AuthConstructor',
            'AuthMethod',
            'BaseAuth',
-
-           'FederatedBaseAuth',
 
            'Password',
            'PasswordMethod',

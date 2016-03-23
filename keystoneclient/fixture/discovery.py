@@ -17,7 +17,6 @@ from oslo_utils import timeutils
 from keystoneclient import utils
 
 __all__ = ['DiscoveryList',
-           'V2Discovery',
            'V3Discovery',
            ]
 
@@ -98,55 +97,6 @@ class DiscoveryBase(dict):
         return mt
 
 
-class V2Discovery(DiscoveryBase):
-    """A Version element for a V2 identity service endpoint.
-
-    Provides some default values and helper methods for creating a v2.0
-    endpoint version structure. Clients should use this instead of creating
-    their own structures.
-
-    :param string href: The url that this entry should point to.
-    :param string id: The version id that should be reported. (optional)
-                      Defaults to 'v2.0'.
-    :param bool html: Add HTML describedby links to the structure.
-    :param bool pdf: Add PDF describedby links to the structure.
-
-    """
-
-    _DESC_URL = 'http://docs.openstack.org/api/openstack-identity-service/2.0/'
-
-    @utils.positional()
-    def __init__(self, href, id=None, html=True, pdf=True, **kwargs):
-        super(V2Discovery, self).__init__(id or 'v2.0', **kwargs)
-
-        self.add_link(href)
-
-        if html:
-            self.add_html_description()
-        if pdf:
-            self.add_pdf_description()
-
-    def add_html_description(self):
-        """Add the HTML described by links.
-
-        The standard structure includes a link to a HTML document with the
-        API specification. Add it to this entry.
-        """
-        self.add_link(href=self._DESC_URL + 'content',
-                      rel='describedby',
-                      type='text/html')
-
-    def add_pdf_description(self):
-        """Add the PDF described by links.
-
-        The standard structure includes a link to a PDF document with the
-        API specification. Add it to this entry.
-        """
-        self.add_link(href=self._DESC_URL + 'identity-dev-guide-2.0.pdf',
-                      rel='describedby',
-                      type='application/pdf')
-
-
 class V3Discovery(DiscoveryBase):
     """A Version element for a V3 identity service endpoint.
 
@@ -158,19 +108,16 @@ class V3Discovery(DiscoveryBase):
     :param string id: The version id that should be reported. (optional)
                       Defaults to 'v3.0'.
     :param bool json: Add JSON media-type elements to the structure.
-    :param bool xml: Add XML media-type elements to the structure.
     """
 
     @utils.positional()
-    def __init__(self, href, id=None, json=True, xml=True, **kwargs):
+    def __init__(self, href, id=None, json=True, **kwargs):
         super(V3Discovery, self).__init__(id or 'v3.0', **kwargs)
 
         self.add_link(href)
 
         if json:
             self.add_json_media_type()
-        if xml:
-            self.add_xml_media_type()
 
     def add_json_media_type(self):
         """Add the JSON media-type links.
@@ -181,15 +128,6 @@ class V3Discovery(DiscoveryBase):
         self.add_media_type(base='application/json',
                             type='application/vnd.openstack.identity-v3+json')
 
-    def add_xml_media_type(self):
-        """Add the XML media-type links.
-
-        The standard structure includes a list of media-types that the endpoint
-        supports. Add XML to the list.
-        """
-        self.add_media_type(base='application/xml',
-                            type='application/vnd.openstack.identity-v3+xml')
-
 
 class DiscoveryList(dict):
     """A List of version elements.
@@ -198,37 +136,25 @@ class DiscoveryList(dict):
     use in testing with discovery.
 
     :param string href: The url that this should be based at.
-    :param bool v2: Add a v2 element.
     :param bool v3: Add a v3 element.
-    :param string v2_status: The status to use for the v2 element.
-    :param DateTime v2_updated: The update time to use for the v2 element.
-    :param bool v2_html: True to add a html link to the v2 element.
-    :param bool v2_pdf: True to add a pdf link to the v2 element.
     :param string v3_status: The status to use for the v3 element.
     :param DateTime v3_updated: The update time to use for the v3 element.
     :param bool v3_json: True to add a html link to the v2 element.
-    :param bool v3_xml: True to add a pdf link to the v2 element.
     """
 
     TEST_URL = 'http://keystone.host:5000/'
 
     @utils.positional(2)
-    def __init__(self, href=None, v2=True, v3=True, v2_id=None, v3_id=None,
-                 v2_status=None, v2_updated=None, v2_html=True, v2_pdf=True,
-                 v3_status=None, v3_updated=None, v3_json=True, v3_xml=True):
+    def __init__(self, href=None, v3=True, v3_id=None,
+                 v3_status=None, v3_updated=None, v3_json=True):
         super(DiscoveryList, self).__init__(versions={'values': []})
 
         href = href or self.TEST_URL
 
-        if v2:
-            v2_href = href.rstrip('/') + '/v2.0'
-            self.add_v2(v2_href, id=v2_id, status=v2_status,
-                        updated=v2_updated, html=v2_html, pdf=v2_pdf)
-
         if v3:
             v3_href = href.rstrip('/') + '/v3'
             self.add_v3(v3_href, id=v3_id, status=v3_status,
-                        updated=v3_updated, json=v3_json, xml=v3_xml)
+                        updated=v3_updated, json=v3_json)
 
     @property
     def versions(self):
@@ -240,15 +166,6 @@ class DiscoveryList(dict):
         :param dict version: A new version structure to add to the list.
         """
         self.versions.append(version)
-
-    def add_v2(self, href, **kwargs):
-        """Add a v2 version to the list.
-
-        The parameters are the same as V2Discovery.
-        """
-        obj = V2Discovery(href, **kwargs)
-        self.add_version(obj)
-        return obj
 
     def add_v3(self, href, **kwargs):
         """Add a v3 version to the list.
