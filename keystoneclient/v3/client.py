@@ -21,8 +21,6 @@ from keystoneclient.auth.identity import v3 as v3_auth
 from keystoneclient import exceptions
 from keystoneclient import httpclient
 from keystoneclient.i18n import _
-from keystoneclient.v3.contrib import endpoint_filter
-from keystoneclient.v3.contrib import endpoint_policy
 from keystoneclient.v3.contrib import simple_cert
 from keystoneclient.v3 import domains
 from keystoneclient.v3 import endpoints
@@ -92,16 +90,6 @@ class Client(httpclient.HTTPClient):
 
     Instances of this class have the following managers:
 
-    .. py:attribute:: endpoint_filter
-
-        :py:class:`keystoneclient.v3.contrib.endpoint_filter.\
-EndpointFilterManager`
-
-    .. py:attribute:: endpoint_policy
-
-        :py:class:`keystoneclient.v3.contrib.endpoint_policy.\
-EndpointPolicyManager`
-
     .. py:attribute:: endpoints
 
         :py:class:`keystoneclient.v3.endpoints.EndpointManager`
@@ -154,10 +142,6 @@ EndpointPolicyManager`
         """Initialize a new client for the Keystone v3 API."""
         super(Client, self).__init__(**kwargs)
 
-        self.endpoint_filter = endpoint_filter.EndpointFilterManager(
-            self._adapter)
-        self.endpoint_policy = endpoint_policy.EndpointPolicyManager(
-            self._adapter)
         self.endpoints = endpoints.EndpointManager(self._adapter)
         self.domains = domains.DomainManager(self._adapter)
         self.groups = groups.GroupManager(self._adapter)
